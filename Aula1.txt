@@ -1,0 +1,242 @@
+https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/
+Debian GNU/Linux
+Nome de máquina -> debianServer
+senha do root -> 123 123
+Escolha o software -> ambiente, servidor web, SSH, utilitátios
+
+Logar -> enter marcelot 123
+su root
+apt-get update
+apt-get upgrade
+
+apt-get install build-essential
+S
+apt-get install linux-headers-$(uname -r)
+S
+
+apt-get install sudo
+Instalar network-manager(apt-get install network-manager) pela media (deixar o source.list com CDROM)
+reboot
+
+Dispositivos -> instalar adicionais para convidado.
+Terminal
+mkdir vbox
+cp /media/cdrom0/VBoxLinuxAdditions.run /home/marcelot/vbox
+cd vbox
+./VBoxLinuxAdditions.run
+Port Forward Configurações Rede Avançado Redirecionamento Adicionar
+Rule ssh
+Protocolo TCP
+Endereço 192.168.15.20
+Porta 22222
+IP convidado 10.0.2.15
+Porta 22
+
+Port Forward Configurações Rede Avançado Redirecionamento Adicionar
+Rule apache
+Protocolo TCP
+Endereço 192.168.15.20
+Porta 8089
+IP convidado 10.0.2.15
+Porta 80
+
+Port Forward Configurações Rede Avançado Redirecionamento Adicionar
+Rule Mysql
+Protocolo TCP
+Endereço 192.168.15.20
+Porta 3309
+IP convidado 10.0.2.15
+Porta 3306
+
+--------SSH--------
+nano /etc/ssh/sshd_config
+Adicionar PermitRootLogin yes
+Descomentar PubKeyAuthentication yes
+Descomentar AuthorizedKeysFile
+Descomentar PasswordAuthentication yes
+systemctl restart ssh
+
+
+--------REDE--------
+nano /etc/apt/sources.list
+deb http://ftp.de.debian.org/debian stretch main
+nano /etc/resolv.conf
+nameserver 8.8.8.8
+nameserver 4.2.2.2
+systemctl restart networking.service
+
+apt-get update
+
+
+--------SAMBA--------
+apt-get install samba
+mkdir /home/dados
+chmod 777 -R /home/dados/
+cp /etc/samba/smb.conf /etc/samba/smb.conf.old
+nano /etc/samba/smb.conf
+
+wins support = yes
+[dados]
+path = /home/dados
+create mask = 777
+directory mask = 777
+browsable = yes
+guest ok = yes
+read only = no
+public = yes
+
+systemctl restart smbd
+adduser username
+smbpasswd username
+
+
+--------MySQL--------
+apt-get -y install mariadb-server mariadb-client
+mysql_secure_installation
+123
+Y
+123
+Y
+n
+n
+Y
+
+--------APACHE--------
+apt-get -y install apache2
+apt-get -y install php7.0 libapache2-mod-php7.0
+nano /etc/apache2/apache2.conf
+	LoadModule rewrite_module libexec/apache2/mod_rewrite.so
+
+apt-get -y install php7.0-mysql php7.0-curl php7.0-gd php7.0-intl php-pear php-imagick php7.0-imap php7.0-mcrypt php-memcache php7.0-pspell php7.0-recode php7.0-sqlite3 php7.0-tidy php7.0-xmlrpc php7.0-xsl
+
+
+--------PHP--------
+apt-get -y install php7.0-opcache
+apt-get -y install php-apcu
+apt-get install php7.1-apc
+
+sudo apt-get update
+apt-get install phpmyadmin php-mbstring php-gettext
+ok
+yes
+enter
+123
+
+phpenmod mbstring
+cd /var/www/html
+ln -s /usr/share/phpmyadmin
+systemctl restart apache2
+
+
+--------Conf SAMBA--------
+nano /etc/samba/smb.conf
+[site]
+comment = site
+path = /var/www/html/site
+valid users = @users
+force group = users
+create mask = 0660
+directory mask = 0775
+writable = yes
+
+mkdir /var/www/html/site
+chmod 0775 -R /var/www/html/site/
+chown username:users -R /var/www/html/site/
+
+
+--------Conf MySQL--------
+mysql -u root -p
+CREATE USER 'seconduser'@'%' IDENTIFIED BY 'zxasqw12';
+grant ALL privileges on fr_dev.* to 'seconduser'@'%' IDENTIFIED by 'zxasqw12';
+
+mysql -u root -p
+create database test;
+quit
+
+
+--------Conf APACHE--------
+nano /etc/apache2/conf-enabled/charset.conf
+descomentar AddDefaultCharset UTF-8
+
+apt-get install curl
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php -r "if (hash_file('sha384', 'composer-setup.php') === '48e3236262b34d30969dca3c37281b3b4bbe3221bda826ac6a9a62d6444cdb0dcd0615698a5cbe587c3f0fe57a54d8f5') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+php composer-setup.php
+php -r "unlink('composer-setup.php');"
+
+
+--------Fazer para os alunos--------
+alunos.txt
+./1_cria_curso.php
+    -----usuarios no SO
+    -----trocar senha no primeiro login
+    -----Criar bases de dados
+    -----Criar usuários no MySQL
+    -----Criar pasta /var/www/html/<aluno>
+    -----Criar pasta /home/<aluno>
+
+
+--------Atividade dos alunos--------
+Putty
+WinSCP
+
+Logar no Linux
+ssh <aluno>@191.252.109.103
+
+--------MySQL--------
+Logar no MySQL
+mysql -u <aluno> -p
+123
+
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(220) COLLATE utf8_unicode_ci NOT NULL,
+  `email` varchar(220) COLLATE utf8_unicode_ci NOT NULL,
+  `username` varchar(220) COLLATE utf8_unicode_ci NOT NULL,
+  `password` varchar(220) COLLATE utf8_unicode_ci NOT NULL,
+  `created` datetime NOT NULL,
+  `modified` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+quit
+
+OU
+http://vps943987.publiccloud.com.br/phpmyadmin
+
+
+
+
+cd /var/www/html/<aluno>
+$composer create-project --prefer-dist cakephp/app site --no-interaction
+Vai levar 9 minutos !
+visite http://vps943987.publiccloud.com.br/<aluno>/
+
+Corrigindo as permissões. Altere as permissões com o comando abaixo:
+$chmod 775 -R /var/www/html/<aluno>/site/
+visite novamente http://vps943987.publiccloud.com.br/<aluno>/
+
+Corrigindo o erro de conexão com o Banco de dados
+$nano site/config/app.php
+No editor utilize CTRL+V para deslocar abaixo
+                  CTRL+Y para deslocar acima
+                  CTRL+C para verificar a linha
+na linha 258 colocar username, password, database
+                  CTRL+O para salvar
+                  CTRL+X para sair
+
+visite novamente
+http://vps943987.publiccloud.com.br/<aluno>/site
+
+visite
+http://vps943987.publiccloud.com.br/<aluno>/site/users
+
+Vamos entrar na pasta
+$cd site
+
+Vamos criar o CRUD
+$bin/cake bake all users
+
+visite novamente
+http://vps943987.publiccloud.com.br/<aluno>/site/users
+
